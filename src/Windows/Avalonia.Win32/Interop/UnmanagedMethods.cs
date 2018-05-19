@@ -850,6 +850,7 @@ namespace Avalonia.Win32.Interop
 
         public enum ClassLongIndex : int
         {
+            GCL_HBRBACKGROUND = -10,
             GCL_HCURSOR = -12,
             GCL_HICON = -14
         }
@@ -964,6 +965,8 @@ namespace Avalonia.Win32.Interop
         public static extern IntPtr CreateCompatibleDC(IntPtr hdc);
         [DllImport("gdi32.dll")]
         public static extern IntPtr SelectObject(IntPtr hdc, IntPtr hObject);
+        [DllImport("gdi32.dll")]
+        public static extern IntPtr CreateSolidBrush(uint crColor);
 
         [DllImport("kernel32.dll", SetLastError = true)]
         public static extern IntPtr CreateFileMapping(IntPtr hFile,

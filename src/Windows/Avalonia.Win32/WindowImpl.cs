@@ -627,6 +627,8 @@ namespace Avalonia.Win32
                     }
 
                     return IntPtr.Zero;
+                case UnmanagedMethods.WindowsMessage.WM_ERASEBKGND:
+                    return IntPtr.Zero;
 
                 case UnmanagedMethods.WindowsMessage.WM_SIZE:
                     var size = (UnmanagedMethods.SizeCommand)wParam;
@@ -761,6 +763,8 @@ namespace Avalonia.Win32
                     _scaling = dpix / 96.0;
                 }
             }
+
+            UnmanagedMethods.SetClassLong(_hwnd, UnmanagedMethods.ClassLongIndex.GCL_HBRBACKGROUND, UnmanagedMethods.CreateSolidBrush(0XFFFFFF));
         }
 
         private void CreateDropTarget()
