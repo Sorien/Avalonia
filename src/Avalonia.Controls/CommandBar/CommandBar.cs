@@ -662,10 +662,7 @@ namespace Avalonia.Controls
                 if (!IsDynamicOverflowEnabled || availableWidth <= 0)
                 {
                     foreach (var item in PrimaryCommands)
-                    {
-                        SetOverflowMode(item, false);
                         visiblePrimaryCommands.Add(item);
-                    }
                 }
                 else
                 {
@@ -674,10 +671,7 @@ namespace Avalonia.Controls
                     if (availableWidth < 50)
                     {
                         foreach (var item in PrimaryCommands)
-                        {
-                            SetOverflowMode(item, false);
                             visiblePrimaryCommands.Add(item);
-                        }
                     }
                     else
                     {
@@ -747,16 +741,10 @@ namespace Avalonia.Controls
                         {
                             if (!IsCommandVisible(PrimaryCommands[i]) || visibleIndices.Contains(i))
                             {
-                                SetOverflowMode(PrimaryCommands[i], false);
                                 visiblePrimaryCommands.Add(PrimaryCommands[i]);
                             }
-                            else if (PrimaryCommands[i] is CommandBarSeparator)
+                            else if (PrimaryCommands[i] is not CommandBarSeparator)
                             {
-                                SetOverflowMode(PrimaryCommands[i], false);
-                            }
-                            else
-                            {
-                                SetOverflowMode(PrimaryCommands[i], true);
                                 overflowedPrimaryCommands.Add(PrimaryCommands[i]);
                             }
                         }
@@ -765,8 +753,6 @@ namespace Avalonia.Controls
 
                 BuildOverflowItems(overflowedPrimaryCommands, overflowItems);
                 ApplyCommandCollections(visiblePrimaryCommands, overflowItems);
-                HasSecondaryCommands = overflowItems.Count > 0;
-                UpdateOverflowButtonVisibility();
             }
             finally
             {
@@ -835,26 +821,23 @@ namespace Avalonia.Controls
                 overflowItems.Add(overflowedPrimaryCommands[i]);
 
             if (overflowedPrimaryCommands.Count > 0 && HasVisibleElements(SecondaryCommands))
-            {
-                SetOverflowMode(_overflowPrimarySecondarySeparator, true);
                 overflowItems.Add(_overflowPrimarySecondarySeparator);
-            }
-            else
-                SetOverflowMode(_overflowPrimarySecondarySeparator, false);
 
             foreach (var item in SecondaryCommands)
-            {
-                SetOverflowMode(item, true);
                 overflowItems.Add(item);
-            }
         }
 
         private void ApplyCommandCollections(IReadOnlyList<ICommandBarElement> visiblePrimaryCommands, IReadOnlyList<ICommandBarElement> overflowItems)
         {
+            var overflowCommands = new HashSet<ICommandBarElement>(overflowItems, ReferenceEqualityComparer.Instance);
+            foreach (var item in PrimaryCommands)
+                SetOverflowMode(item, overflowCommands.Contains(item));
+            SetOverflowMode(_overflowPrimarySecondarySeparator, overflowCommands.Contains(_overflowPrimarySecondarySeparator));
+            foreach (var item in SecondaryCommands)
+                SetOverflowMode(item, true);
+
             var updateVisiblePrimaryCommands = !SequencesMatch(_visiblePrimaryCommands, visiblePrimaryCommands);
             var updateOverflowItems = !SequencesMatch(_overflowItems, overflowItems);
-            if (!updateVisiblePrimaryCommands && !updateOverflowItems)
-                return;
 
             if (updateVisiblePrimaryCommands)
                 _visiblePrimaryCommands.Clear();
@@ -872,6 +855,9 @@ namespace Avalonia.Controls
                 for (var i = 0; i < overflowItems.Count; i++)
                     _overflowItems.Add(overflowItems[i]);
             }
+
+            HasSecondaryCommands = overflowItems.Count > 0;
+            UpdateOverflowButtonVisibility();
         }
 
         private static bool SequencesMatch(IReadOnlyList<ICommandBarElement> first, IReadOnlyList<ICommandBarElement> second)

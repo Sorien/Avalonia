@@ -996,6 +996,61 @@ public class CommandBarLabelPositionTests : ScopedTestBase
     }
 
     [Fact]
+    public void UnchangedCommandCollections_ReapplyOverflowModesWithoutCollectionChanges()
+    {
+        var primary = new CommandBarButton();
+        var overflowed = new CommandBarButton();
+        var secondary = new CommandBarButton();
+        var orphanedSeparator = new CommandBarSeparator();
+        var cb = new CommandBar
+        {
+            DefaultLabelPosition = CommandBarDefaultLabelPosition.Collapsed,
+            ItemWidthCollapsed = 100,
+            IsDynamicOverflowEnabled = true,
+            PrimaryCommands = { primary, orphanedSeparator, overflowed },
+            SecondaryCommands = { secondary },
+        };
+        cb.Measure(new Size(200, double.PositiveInfinity));
+        Assert.Equal(new ICommandBarElement[] { primary }, cb.VisiblePrimaryCommands);
+        var separator = Assert.IsType<CommandBarSeparator>(cb.OverflowItems[1]);
+        Assert.Equal(new ICommandBarElement[] { overflowed, separator, secondary }, cb.OverflowItems);
+
+        primary.IsInOverflow = true;
+        overflowed.IsInOverflow = false;
+        secondary.IsInOverflow = false;
+        separator.IsInOverflow = false;
+        orphanedSeparator.IsInOverflow = true;
+        primary.IsCompact = false;
+        primary.LabelPosition = CommandBarDefaultLabelPosition.Right;
+        overflowed.IsCompact = true;
+        overflowed.LabelPosition = CommandBarDefaultLabelPosition.Collapsed;
+        secondary.IsCompact = true;
+        secondary.LabelPosition = CommandBarDefaultLabelPosition.Collapsed;
+        separator.IsCompact = true;
+        orphanedSeparator.IsCompact = false;
+        var collectionChanges = 0;
+        ((INotifyCollectionChanged)cb.VisiblePrimaryCommands).CollectionChanged += (_, _) => collectionChanges++;
+        ((INotifyCollectionChanged)cb.OverflowItems).CollectionChanged += (_, _) => collectionChanges++;
+
+        cb.Measure(new Size(201, double.PositiveInfinity));
+
+        Assert.Equal(0, collectionChanges);
+        Assert.False(primary.IsInOverflow);
+        Assert.True(primary.IsCompact);
+        Assert.Equal(CommandBarDefaultLabelPosition.Collapsed, primary.LabelPosition);
+        Assert.True(overflowed.IsInOverflow);
+        Assert.False(overflowed.IsCompact);
+        Assert.Equal(CommandBarDefaultLabelPosition.Right, overflowed.LabelPosition);
+        Assert.True(secondary.IsInOverflow);
+        Assert.False(secondary.IsCompact);
+        Assert.Equal(CommandBarDefaultLabelPosition.Right, secondary.LabelPosition);
+        Assert.True(separator.IsInOverflow);
+        Assert.False(separator.IsCompact);
+        Assert.False(orphanedSeparator.IsInOverflow);
+        Assert.True(orphanedSeparator.IsCompact);
+    }
+
+    [Fact]
     public void DefaultLabelPosition_DoesNotClearLabelText()
     {
         var cb = new CommandBar();
@@ -1892,7 +1947,8 @@ public class CommandBarSeparatorOverflowTests : ScopedTestBase
 
         Assert.Equal(3, cb.OverflowItems.Count);
         Assert.Same(overflowedPrimary, cb.OverflowItems[0]);
-        Assert.IsType<CommandBarSeparator>(cb.OverflowItems[1]);
+        var separator = Assert.IsType<CommandBarSeparator>(cb.OverflowItems[1]);
+        Assert.True(separator.IsInOverflow);
         Assert.Same(secondary, cb.OverflowItems[2]);
 
         secondary.IsVisible = false;
@@ -1901,12 +1957,14 @@ public class CommandBarSeparatorOverflowTests : ScopedTestBase
         Assert.Same(overflowedPrimary, cb.OverflowItems[0]);
         Assert.Same(secondary, cb.OverflowItems[1]);
         Assert.DoesNotContain(cb.OverflowItems, x => x is CommandBarSeparator);
+        Assert.False(separator.IsInOverflow);
 
         secondary.IsVisible = true;
 
         Assert.Equal(3, cb.OverflowItems.Count);
         Assert.Same(overflowedPrimary, cb.OverflowItems[0]);
-        Assert.IsType<CommandBarSeparator>(cb.OverflowItems[1]);
+        Assert.Same(separator, cb.OverflowItems[1]);
+        Assert.True(separator.IsInOverflow);
         Assert.Same(secondary, cb.OverflowItems[2]);
     }
 
