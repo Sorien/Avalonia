@@ -1306,6 +1306,54 @@ public class CommandBarItemWidthTests : ScopedTestBase
         Assert.Equal(new ICommandBarElement[] { first, second }, cb.VisiblePrimaryCommands);
         Assert.Equal(new ICommandBarElement[] { third, fourth }, cb.OverflowItems);
     }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void OverflowModes_FollowOriginalOrder_WithMixedPrioritiesAndHiddenCommands(bool secondaryVisible)
+    {
+        var leadingSeparator = new CommandBarSeparator();
+        var firstOverflowed = new CommandBarButton { DynamicOverflowOrder = 20 };
+        var firstVisible = new CommandBarButton { DynamicOverflowOrder = 1 };
+        var hidden = new CommandBarButton { IsVisible = false };
+        var secondOverflowed = new CommandBarButton { DynamicOverflowOrder = 10 };
+        var secondVisible = new CommandBarButton { DynamicOverflowOrder = 0 };
+        var trailingSeparator = new CommandBarSeparator();
+        var secondary = new CommandBarButton { IsVisible = secondaryVisible };
+        var cb = new CommandBar
+        {
+            ItemWidthBottom = 100,
+            IsDynamicOverflowEnabled = true,
+            PrimaryCommands = { leadingSeparator, firstOverflowed, firstVisible, hidden, secondOverflowed, secondVisible, trailingSeparator },
+            SecondaryCommands = { secondary },
+        };
+        cb.Measure(new Size(250, double.PositiveInfinity));
+
+        Assert.Equal(new ICommandBarElement[] { firstVisible, hidden, secondVisible }, cb.VisiblePrimaryCommands);
+        Assert.Same(firstOverflowed, cb.OverflowItems[0]);
+        Assert.Same(secondOverflowed, cb.OverflowItems[1]);
+        Assert.Same(secondary, cb.OverflowItems[^1]);
+        Assert.Equal(secondaryVisible ? 4 : 3, cb.OverflowItems.Count);
+        var separator = secondaryVisible ? Assert.IsType<CommandBarSeparator>(cb.OverflowItems[2]) : null;
+        if (separator is not null)
+            Assert.True(separator.IsInOverflow);
+        Assert.True(firstOverflowed.IsInOverflow);
+        Assert.True(secondOverflowed.IsInOverflow);
+        Assert.True(secondary.IsInOverflow);
+        Assert.False(firstVisible.IsInOverflow);
+        Assert.False(secondVisible.IsInOverflow);
+        Assert.False(hidden.IsInOverflow);
+        Assert.False(leadingSeparator.IsInOverflow);
+        Assert.False(trailingSeparator.IsInOverflow);
+
+        cb.Measure(new Size(500, double.PositiveInfinity));
+
+        Assert.Same(secondary, Assert.Single(cb.OverflowItems));
+        Assert.All(cb.PrimaryCommands, item => Assert.False(item.IsInOverflow));
+        Assert.True(secondary.IsInOverflow);
+        if (separator is not null)
+            Assert.False(separator.IsInOverflow);
+    }
 }
 
 public class CommandBarOverflowKeyboardTests : ScopedTestBase

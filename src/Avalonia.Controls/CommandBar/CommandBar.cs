@@ -829,10 +829,16 @@ namespace Avalonia.Controls
 
         private void ApplyCommandCollections(IReadOnlyList<ICommandBarElement> visiblePrimaryCommands, IReadOnlyList<ICommandBarElement> overflowItems)
         {
-            var overflowCommands = new HashSet<ICommandBarElement>(overflowItems, ReferenceEqualityComparer.Instance);
+            // Overflowed primary commands are a prefix of overflowItems, in their original order.
+            var overflowIndex = 0;
             foreach (var item in PrimaryCommands)
-                SetOverflowMode(item, overflowCommands.Contains(item));
-            SetOverflowMode(_overflowPrimarySecondarySeparator, overflowCommands.Contains(_overflowPrimarySecondarySeparator));
+            {
+                var inOverflow = overflowIndex < overflowItems.Count && ReferenceEquals(item, overflowItems[overflowIndex]);
+                SetOverflowMode(item, inOverflow);
+                if (inOverflow)
+                    overflowIndex++;
+            }
+            SetOverflowMode(_overflowPrimarySecondarySeparator, overflowIndex < overflowItems.Count && ReferenceEquals(_overflowPrimarySecondarySeparator, overflowItems[overflowIndex]));
             foreach (var item in SecondaryCommands)
                 SetOverflowMode(item, true);
 
